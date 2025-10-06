@@ -22,14 +22,19 @@
   select, button{background:var(--panel);border:1px solid #444;color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer}
   button.primary{background:var(--accent);color:#fff;border:0}
   .panel{background:var(--panel);padding:12px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.4)}
+  /* الجزء المعدل لتثبيت الأبعاد بالبكسل */
   .board{
     margin-top:18px; display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
-    width:min(520px,92vw); height:min(520px,92vw); margin-left:auto;margin-right:auto;
+    width:400px; /* عرض ثابت */
+    height:400px; /* ارتفاع ثابت */
+    margin-left:auto;margin-right:auto;
   }
   .cell{
     background:#1d1d1d;border-radius:10px;display:flex;align-items:center;justify-content:center;
-    font-size:clamp(40px,8vw,96px);cursor:pointer;user-select:none;border:2px solid transparent;
+    font-size:80px; /* حجم خط ثابت */
+    cursor:pointer;user-select:none;border:2px solid transparent;
   }
+  /* نهاية الجزء المعدل */
   .cell.disabled{cursor:not-allowed;opacity:0.85}
   .status{margin-top:14px;display:flex;gap:12px;align-items:center;justify-content:center}
   .score{display:flex;gap:12px;align-items:center}
@@ -40,7 +45,13 @@
   .o{color:var(--ocolor);font-weight:800}
   .highlight{outline:4px solid rgba(0,200,81,0.12);box-shadow:0 6px 20px rgba(0,200,81,0.06) inset}
   footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
-  @media (max-width:600px){ .top{flex-direction:column;align-items:stretch;gap:10px} .controls{justify-content:space-between} }
+  @media (max-width:600px){ 
+    .top{flex-direction:column;align-items:stretch;gap:10px} 
+    .controls{justify-content:space-between} 
+    /* تصغير اللوحة على الشاشات الصغيرة لتجنب الخروج */
+    .board { width: 90vw; height: 90vw; }
+    .cell { font-size: 15vw; }
+  }
 </style>
 </head>
 <body>
@@ -90,7 +101,7 @@
   </div>
 
 <script>
-/* ======= منطق اللعبة ======= */
+/* ======= منطق اللعبة (لا تغيير هنا) ======= */
 const boardEl = document.getElementById('board');
 const cells = Array.from(document.querySelectorAll('.cell'));
 const modeSel = document.getElementById('mode');
@@ -140,8 +151,6 @@ function onCellClick(e){
   const idx = Number(e.currentTarget.dataset.i);
   if(!playing || board[idx]) return;
   makeMove(idx, current);
-  
-  // **تم حذف استدعاء cpuPlay المكرر من هنا**
 }
 
 function makeMove(i, player){
@@ -187,7 +196,7 @@ function highlightWin(line){
   line.forEach(i=>cells[i].classList.add('highlight'));
 }
 
-/* ======= CPU ======= */
+/* ======= CPU (لا تغيير هنا) ======= */
 function cpuPlay(){
   if(!playing) return;
   if(cpuMode === 'easy'){
@@ -246,18 +255,17 @@ function checkWinStatic(b){
   return null;
 }
 
-/* ======= Scores & UI ======= */
+/* ======= Scores & UI (لا تغيير هنا) ======= */
 function updateScores(){
   scoreXEl.textContent = scores.X;
   scoreOEl.textContent = scores.O;
   scoreTEl.textContent = scores.T;
 }
 
-/* ======= Events ======= */
+/* ======= Events (لا تغيير هنا) ======= */
 resetBtn.addEventListener('click', ()=>{ init(); });
 modeSel.addEventListener('change', ()=>{
   init();
-  // if switching to pvc and cpu starts (if O starts) — but we always start with X player
 });
 /* Disable text selection double clicks */
 boardEl.addEventListener('contextmenu', e=>e.preventDefault());
