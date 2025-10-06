@@ -70,7 +70,6 @@
       </div>
 
       <div class="board" id="board">
-        <!-- 9 cells -->
         <div class="cell" data-i="0"></div>
         <div class="cell" data-i="1"></div>
         <div class="cell" data-i="2"></div>
@@ -141,10 +140,8 @@ function onCellClick(e){
   const idx = Number(e.currentTarget.dataset.i);
   if(!playing || board[idx]) return;
   makeMove(idx, current);
-  if(playing && vsCpu && current==='O'){ /* shouldn't happen because we switch current in makeMove */ }
-  if(playing && vsCpu && current==='O'){ /* no-op */ }
-  // if vs cpu and next is cpu, trigger cpu move
-  if(playing && vsCpu && current==='O'){ setTimeout(cpuPlay, 300); }
+  
+  // **تم حذف استدعاء cpuPlay المكرر من هنا**
 }
 
 function makeMove(i, player){
