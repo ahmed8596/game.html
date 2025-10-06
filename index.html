@@ -1,79 +1,272 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ar">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>لعبة السرعة ⚡</title>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>لعبة إكس-أو — XO</title>
 <style>
+  :root{
+    --bg:#282828; --panel:#333; --muted:#bdbdbd; --accent:#0b5cff; --win:#00c851;
+    --xcolor:#00b0ff; --ocolor:#ff6b6b;
+  }
+  *{box-sizing:border-box}
   body{
-    margin:0;display:flex;justify-content:center;align-items:center;height:100vh;
-    background:#181818;color:#fff;font-family:sans-serif;direction:rtl;flex-direction:column;
+    margin:0; min-height:100vh; display:flex; align-items:center; justify-content:center;
+    background:var(--bg); color:#f1f1f1; font-family:Inter, "Noto Sans Arabic", system-ui;
+    direction:rtl; padding:20px;
   }
-  h1{margin-bottom:20px;}
-  #game-area{
-    position:relative;width:300px;height:300px;background:#222;border-radius:12px;overflow:hidden;
+  .container{width:100%;max-width:900px;}
+  .top{display:flex;gap:16px;align-items:center;justify-content:space-between;margin-bottom:18px}
+  h1{margin:0;font-size:20px}
+  .controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+  select, button{background:var(--panel);border:1px solid #444;color:#fff;padding:8px 10px;border-radius:8px;cursor:pointer}
+  button.primary{background:var(--accent);color:#fff;border:0}
+  .panel{background:var(--panel);padding:12px;border-radius:12px;box-shadow:0 6px 20px rgba(0,0,0,0.4)}
+  .board{
+    margin-top:18px; display:grid; grid-template-columns:repeat(3,1fr); gap:12px;
+    width:min(520px,92vw); height:min(520px,92vw); margin-left:auto;margin-right:auto;
   }
-  #target{
-    position:absolute;width:50px;height:50px;background:#0bda51;border-radius:8px;cursor:pointer;
-    display:none;
+  .cell{
+    background:#1d1d1d;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    font-size:clamp(40px,8vw,96px);cursor:pointer;user-select:none;border:2px solid transparent;
   }
-  button{margin-top:15px;padding:10px 18px;border:none;border-radius:8px;background:#0b5cff;color:#fff;cursor:pointer;}
+  .cell.disabled{cursor:not-allowed;opacity:0.85}
+  .status{margin-top:14px;display:flex;gap:12px;align-items:center;justify-content:center}
+  .score{display:flex;gap:12px;align-items:center}
+  .score .item{padding:8px 12px;border-radius:8px;background:#222;color:var(--muted);min-width:90px;text-align:center}
+  .item strong{display:block;color:#fff;font-size:18px}
+  .winner{background:linear-gradient(90deg,#073b2e,#00c851);color:#02100b}
+  .x{color:var(--xcolor);font-weight:800}
+  .o{color:var(--ocolor);font-weight:800}
+  .highlight{outline:4px solid rgba(0,200,81,0.12);box-shadow:0 6px 20px rgba(0,200,81,0.06) inset}
+  footer{margin-top:18px;text-align:center;color:var(--muted);font-size:13px}
+  @media (max-width:600px){ .top{flex-direction:column;align-items:stretch;gap:10px} .controls{justify-content:space-between} }
 </style>
 </head>
 <body>
-  <h1>اختبر سرعتك 🔥</h1>
-  <div id="game-area"><div id="target"></div></div>
-  <div id="score">النتيجة: 0</div>
-  <button id="start">ابدأ اللعبة</button>
+  <div class="container">
+    <div class="top">
+      <h1>لعبة إكس-أو — XO</h1>
+      <div class="controls">
+        <label for="mode" style="display:flex;align-items:center;gap:8px">
+          <span style="color:var(--muted);font-size:13px;margin-left:6px">الوضع</span>
+          <select id="mode">
+            <option value="pvp">لاعب ضد لاعب</option>
+            <option value="pvc">لاعب ضد الكمبيوتر (الكمبيوتر ذكي)</option>
+            <option value="pvc-easy">لاعب ضد الكمبيوتر (سهل)</option>
+          </select>
+        </label>
+        <button id="reset" class="primary">إعادة لعبة جديدة</button>
+      </div>
+    </div>
+
+    <div class="panel" style="text-align:center">
+      <div class="status" id="statusBar">
+        <div class="score">
+          <div class="item"><small style="color:var(--muted)">اللاعب (X)</small><strong id="scoreX">0</strong></div>
+          <div class="item"><small style="color:var(--muted)">التعادل</small><strong id="scoreT">0</strong></div>
+          <div class="item"><small style="color:var(--muted)">الكمبيوتر / اللاعب (O)</small><strong id="scoreO">0</strong></div>
+        </div>
+      </div>
+
+      <div class="board" id="board">
+        <!-- 9 cells -->
+        <div class="cell" data-i="0"></div>
+        <div class="cell" data-i="1"></div>
+        <div class="cell" data-i="2"></div>
+        <div class="cell" data-i="3"></div>
+        <div class="cell" data-i="4"></div>
+        <div class="cell" data-i="5"></div>
+        <div class="cell" data-i="6"></div>
+        <div class="cell" data-i="7"></div>
+        <div class="cell" data-i="8"></div>
+      </div>
+
+      <div style="margin-top:12px">
+        <div id="message" style="color:var(--muted)">اضغط على خلية للعب. اللاعب يبدأ دائماً بعلامة X.</div>
+      </div>
+    </div>
+
+    <footer>صنع سريع — لو تبي تعديل (نمط، ألوان، صوّت)، أقول لك السطر اللي تغيّره.</footer>
+  </div>
 
 <script>
-const area=document.getElementById('game-area');
-const target=document.getElementById('target');
-const scoreBox=document.getElementById('score');
-const startBtn=document.getElementById('start');
+/* ======= منطق اللعبة ======= */
+const boardEl = document.getElementById('board');
+const cells = Array.from(document.querySelectorAll('.cell'));
+const modeSel = document.getElementById('mode');
+const resetBtn = document.getElementById('reset');
+const msg = document.getElementById('message');
+const scoreXEl = document.getElementById('scoreX');
+const scoreOEl = document.getElementById('scoreO');
+const scoreTEl = document.getElementById('scoreT');
 
-let score=0;
-let playing=false;
-let timeout;
+let board; // array 9: 'X' | 'O' | null
+let current; // 'X' or 'O'
+let playing = true;
+let scores = {X:0,O:0,T:0};
+let vsCpu = false;
+let cpuMode = 'hard'; // 'hard' or 'easy'
 
-function randomPosition(){
-  const x=Math.random()*(area.clientWidth-50);
-  const y=Math.random()*(area.clientHeight-50);
-  target.style.left=x+'px';
-  target.style.top=y+'px';
+const wins = [
+  [0,1,2],[3,4,5],[6,7,8],
+  [0,3,6],[1,4,7],[2,5,8],
+  [0,4,8],[2,4,6]
+];
+
+function init(){
+  board = Array(9).fill(null);
+  current = 'X';
+  playing = true;
+  cells.forEach(c=>{
+    c.textContent=''; c.classList.remove('disabled','highlight'); c.classList.remove('x','o');
+    c.addEventListener('click', onCellClick);
+  });
+  vsCpu = modeSel.value.startsWith('pvc');
+  cpuMode = modeSel.value === 'pvc-easy' ? 'easy' : 'hard';
+  updateMessage();
 }
-
-function showTarget(){
-  randomPosition();
-  target.style.display='block';
-  timeout=setTimeout(()=>{ // لو ما ضغط بسرعة يخسر نقطة
-    target.style.display='none';
-    if(playing){ score--; updateScore(); showTarget(); }
-  },1000);
-}
-
-function updateScore(){ scoreBox.textContent='النتيجة: '+score; }
-
-target.onclick=function(){
-  clearTimeout(timeout);
-  score++;
-  updateScore();
-  target.style.display='none';
-  if(playing) setTimeout(showTarget,500);
-};
-
-startBtn.onclick=function(){
-  if(playing){
-    playing=false;
-    target.style.display='none';
-    startBtn.textContent='ابدأ اللعبة';
+function updateMessage(txt){
+  if(txt){ msg.textContent = txt; return; }
+  if(!playing) return;
+  if(vsCpu){
+    if(current==='X') msg.textContent = "دورك (X)";
+    else msg.textContent = cpuMode==='easy' ? "دور الكمبيوتر (O) — سهل" : "دور الكمبيوتر (O)";
   } else {
-    score=0;updateScore();
-    playing=true;
-    startBtn.textContent='إيقاف';
-    showTarget();
+    msg.textContent = `دور اللاعب ${current}`;
   }
-};
+}
+
+function onCellClick(e){
+  const idx = Number(e.currentTarget.dataset.i);
+  if(!playing || board[idx]) return;
+  makeMove(idx, current);
+  if(playing && vsCpu && current==='O'){ /* shouldn't happen because we switch current in makeMove */ }
+  if(playing && vsCpu && current==='O'){ /* no-op */ }
+  // if vs cpu and next is cpu, trigger cpu move
+  if(playing && vsCpu && current==='O'){ setTimeout(cpuPlay, 300); }
+}
+
+function makeMove(i, player){
+  if(board[i] || !playing) return;
+  board[i]=player;
+  const el = cells[i];
+  el.textContent = player;
+  el.classList.add('disabled', player==='X' ? 'x' : 'o');
+  // check win
+  const w = checkWin(board);
+  if(w){
+    playing = false;
+    highlightWin(w.line);
+    msg.textContent = `فاز ${w.player === 'X' ? 'اللاعب X' : (vsCpu ? 'الكمبيوتر O' : 'اللاعب O')}!`;
+    scores[w.player]++; updateScores();
+    return;
+  }
+  if(board.every(Boolean)){
+    playing = false;
+    msg.textContent = 'تعادل!';
+    scores.T++; updateScores();
+    return;
+  }
+  // switch
+  current = player === 'X' ? 'O' : 'X';
+  updateMessage();
+  // if it's cpu turn
+  if(playing && vsCpu && current === 'O'){
+    setTimeout(cpuPlay, 300);
+  }
+}
+
+function checkWin(b){
+  for(const line of wins){
+    const [a,b1,c] = line;
+    if(board[a] && board[a] === board[b1] && board[a] === board[c]){
+      return { player: board[a], line };
+    }
+  }
+  return null;
+}
+function highlightWin(line){
+  line.forEach(i=>cells[i].classList.add('highlight'));
+}
+
+/* ======= CPU ======= */
+function cpuPlay(){
+  if(!playing) return;
+  if(cpuMode === 'easy'){
+    // random available
+    const avail = board.map((v,i)=>v?null:i).filter(v=>v!==null);
+    const pick = avail[Math.floor(Math.random()*avail.length)];
+    makeMove(pick, 'O');
+    return;
+  }
+  // hard -> minimax (unbeatable)
+  const best = minimax(board.slice(), 'O').index;
+  makeMove(best, 'O');
+}
+
+/* Minimax implementation */
+function minimax(newBoard, player){
+  // available spots
+  const avail = newBoard.map((v,i)=>v?null:i).filter(v=>v!==null);
+  // check for terminal states
+  const winState = checkWinStatic(newBoard);
+  if(winState === 'X') return { score: -10 };
+  if(winState === 'O') return { score: 10 };
+  if(avail.length === 0) return { score: 0 };
+
+  const moves = [];
+  for(const i of avail){
+    const move = {};
+    move.index = i;
+    newBoard[i] = player;
+
+    const result = minimax(newBoard, player === 'O' ? 'X' : 'O');
+    move.score = result.score;
+
+    newBoard[i] = null;
+    moves.push(move);
+  }
+
+  // choose best move
+  let bestMove;
+  if(player === 'O'){
+    // maximize
+    let bestScore = -Infinity;
+    for(const m of moves) if(m.score > bestScore){ bestScore = m.score; bestMove = m; }
+  } else {
+    // minimize
+    let bestScore = Infinity;
+    for(const m of moves) if(m.score < bestScore){ bestScore = m.score; bestMove = m; }
+  }
+  return bestMove;
+}
+function checkWinStatic(b){
+  for(const line of wins){
+    const [a,b1,c] = line;
+    if(b[a] && b[a] === b[b1] && b[a] === b[c]) return b[a];
+  }
+  return null;
+}
+
+/* ======= Scores & UI ======= */
+function updateScores(){
+  scoreXEl.textContent = scores.X;
+  scoreOEl.textContent = scores.O;
+  scoreTEl.textContent = scores.T;
+}
+
+/* ======= Events ======= */
+resetBtn.addEventListener('click', ()=>{ init(); });
+modeSel.addEventListener('change', ()=>{
+  init();
+  // if switching to pvc and cpu starts (if O starts) — but we always start with X player
+});
+/* Disable text selection double clicks */
+boardEl.addEventListener('contextmenu', e=>e.preventDefault());
+
+/* start */
+init();
 </script>
 </body>
 </html>
